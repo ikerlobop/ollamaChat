@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat con Llama 2</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #343541;
+            margin: 0;
+            color: white;
+        }
+        .chat-container {
+            width: 600px;
+            background: #444654;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        #chatbox {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .message {
+            padding: 10px;
+            border-radius: 10px;
+            max-width: 80%;
+            word-wrap: break-word;
+            white-space: pre-line;
+        }
+        .user {
+            align-self: flex-end;
+            background-color: #0b93f6;
+            color: white;
+        }
+        .bot {
+            align-self: flex-start;
+            background-color: #40414F;
+        }
+        .code-container {
+            position: relative;
+        }
+        .code {
+            background-color: #2d2d2d;
+            color: #f8f8f2;
+            font-family: monospace;
+            padding: 10px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        .copy-button {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #0b93f6;
+            color: white;
+            border: none;
+            padding: 5px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        .input-container {
+            display: flex;
+            padding: 10px;
+            background: #40414F;
+            border-top: 1px solid #555;
+        }
+        input {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background: #333;
+            color: white;
+            outline: none;
+        }
+        button {
+            padding: 10px 15px;
+            border: none;
+            background: #0b93f6;
+            color: white;
+            border-radius: 5px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #007adf;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div id="chatbox"></div>
+        <div class="input-container">
+            <input type="text" id="userInput" placeholder="Escribe un mensaje..." />
+            <button onclick="sendMessage()">Enviar</button>
+        </div>
+    </div>
+
+    <script>
+        async function sendMessage() {
+            const input = document.getElementById("userInput");
+            const message = input.value.trim();
+            if (!message) return;
+
+            appendMessage("user", message);
+            input.value = "";
+
+            try {
+                const response = await fetch("http://localhost:3000/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ prompt: message })
+                });
+                const data = await response.json();
+                appendMessage("bot", data.response || "Error en la respuesta del bot.");
+            } catch (error) {
+                appendMessage("bot", "Error de conexión con el servidor.");
+            }
+        }
+
+        function appendMessage(sender, text) {
+            const chatbox = document.getElementById("chatbox");
+            const messageElement = document.createElement("div");
+            messageElement.className = `message ${sender}`;
+            
+            if (text.includes("```")) {
+                const codeContent = text.split("```")[1].trim();
+                messageElement.innerHTML = `
+                    <div class="code-container">
+                        <button class="copy-button" onclick="copyCode(this)">Copiar</button>
+                        <pre class="code">${codeContent}</pre>
+                    </div>
+                `;
+            } else {
+                messageElement.innerHTML = text.replace(/\n/g, "<br>");
+            }
+            
+            chatbox.appendChild(messageElement);
+            chatbox.scrollTop = chatbox.scrollHeight;
+        }
+
+        function copyCode(button) {
+            const codeElement = button.nextElementSibling;
+            navigator.clipboard.writeText(codeElement.innerText).then(() => {
+                button.innerText = "Copiado!";
+                setTimeout(() => button.innerText = "Copiar", 2000);
+            });
+        }
+    </script>
+</body>
+</html>
